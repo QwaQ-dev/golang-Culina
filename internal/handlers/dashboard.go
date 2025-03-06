@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/qwaq-dev/culina/internal/repository"
+	"github.com/qwaq-dev/culina/structures"
 )
 
 type DashboardHandler struct {
@@ -17,6 +18,9 @@ func NewDashboardHandler(repo repository.DashboardRepository, log *slog.Logger) 
 }
 
 func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
+	recipe := new(structures.Recipes)
+
+	_ = recipe
 	return nil
 }
 
