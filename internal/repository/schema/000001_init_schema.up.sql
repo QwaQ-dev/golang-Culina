@@ -22,7 +22,7 @@ CREATE TABLE recipes (
     diff VARCHAR(255) NOT NULL,
     filters JSONB NOT NULL,
     imgs JSONB NOT NULL,
-    author INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    authorID INTEGER REFERENCES users(id) ON DELETE CASCADE,
     ingredients JSONB NOT NULL,
     steps JSONB NOT NULL
 )

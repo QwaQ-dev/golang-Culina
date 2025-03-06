@@ -12,6 +12,7 @@ type UserRepository interface {
 }
 
 type DashboardRepository interface {
+	CreateRecipe(recipe structures.Recipes, log *slog.Logger) (int, error)
 }
 
 type ProfileRepository interface {
