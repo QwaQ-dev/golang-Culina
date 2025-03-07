@@ -13,6 +13,8 @@ type UserRepository interface {
 
 type DashboardRepository interface {
 	CreateRecipe(recipe structures.Recipes, log *slog.Logger) (int, error)
+	GetAllRecipes(log *slog.Logger) ([]structures.Recipes, error)
+	GetOneRecipe(id int, log *slog.Logger) (*structures.Recipes, error)
 }
 
 type ProfileRepository interface {

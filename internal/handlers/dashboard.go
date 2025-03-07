@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/qwaq-dev/culina/internal/repository"
+	"github.com/qwaq-dev/culina/pkg/logger/sl"
 	"github.com/qwaq-dev/culina/structures"
 )
 
@@ -147,7 +148,18 @@ func (h *DashboardHandler) SearchByTypesense(c *fiber.Ctx) error {
 }
 
 func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
-	return nil
+
+	recipes, err := h.repo.GetAllRecipes(h.log)
+	if err != nil {
+		h.log.Error("Error with getting all recipe", sl.Err(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error with getting recipe",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"recipes": recipes,
+	})
 }
 
 func (h *DashboardHandler) RecipeById(c *fiber.Ctx) error {
