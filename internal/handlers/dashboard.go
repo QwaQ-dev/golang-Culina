@@ -163,5 +163,16 @@ func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
 }
 
 func (h *DashboardHandler) RecipeById(c *fiber.Ctx) error {
-	return nil
+	id, _ := strconv.Atoi(c.Params("id"))
+
+	recipe, err := h.repo.GetRecipeById(id, h.log)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error with getting recipe by id",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"recipe": recipe,
+	})
 }

@@ -72,3 +72,29 @@ func (p *PostgresDashboardRepository) GetAllRecipes(log *slog.Logger) ([]structu
 
 	return recipes, nil
 }
+
+func (p *PostgresDashboardRepository) GetRecipeById(id int, log *slog.Logger) (structures.Recipes, error) {
+	var recipe structures.Recipes
+	var filtersJSON, imgsJSON, ingredientsJSON, stepsJSON []byte
+
+	rows, err := p.DB.Query("SELECT * FROM recipes WHERE id=$1", id)
+	if err != nil {
+		log.Error("error with getting recipe by id", sl.Err(err))
+		return recipe, nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Descr, &recipe.Diff, &filtersJSON, &imgsJSON, &recipe.AuthorID, &ingredientsJSON, &stepsJSON)
+		if err != nil {
+			log.Error("Error scanning row", sl.Err(err))
+			continue
+		}
+
+		json.Unmarshal(filtersJSON, &recipe.Filters)
+		json.Unmarshal(imgsJSON, &recipe.Imgs)
+		json.Unmarshal(ingredientsJSON, &recipe.Ingredients)
+		json.Unmarshal(stepsJSON, &recipe.Steps)
+	}
+	return recipe, nil
+}
