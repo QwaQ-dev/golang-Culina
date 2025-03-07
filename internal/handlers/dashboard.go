@@ -148,8 +148,17 @@ func (h *DashboardHandler) SearchByTypesense(c *fiber.Ctx) error {
 }
 
 func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
 
-	recipes, err := h.repo.GetAllRecipes(h.log)
+	pageSize, err := strconv.Atoi(c.Query("pageSize", "10"))
+	if err != nil || page < 1 {
+		pageSize = 10
+	}
+
+	recipes, err := h.repo.GetAllRecipes(page, pageSize, h.log)
 	if err != nil {
 		h.log.Error("Error with getting all recipe", sl.Err(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -158,7 +167,9 @@ func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"recipes": recipes,
+		"page":     page,
+		"pageSize": pageSize,
+		"recipes":  recipes,
 	})
 }
 

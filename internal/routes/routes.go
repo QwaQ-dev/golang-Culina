@@ -26,7 +26,7 @@ func InitRoutes(
 	dashboard.Post("/add-review", dashboardHandler.AddReview)
 	dashboard.Post("/filter", dashboardHandler.Filter)
 	dashboard.Get("/search-recipes/:query", dashboardHandler.SearchByTypesense)
-	dashboard.Get("/recipes", dashboardHandler.AllRecipes)
+	dashboard.Get("/recipes", dashboardHandler.AllRecipes) // localhost:8080/dashboard/recipes?page=*&pageSize=*
 	dashboard.Get("/recipe/:id", dashboardHandler.RecipeById)
 
 	//Routes for profile page

@@ -37,10 +37,15 @@ func (p *PostgresDashboardRepository) CreateRecipe(recipe structures.Recipes, lo
 	return recipeId, nil
 }
 
-func (p *PostgresDashboardRepository) GetAllRecipes(log *slog.Logger) ([]structures.Recipes, error) {
+func (p *PostgresDashboardRepository) GetAllRecipes(page, pageSize int, log *slog.Logger) ([]structures.Recipes, error) {
 	var recipes []structures.Recipes
 
-	rows, err := p.DB.Query("SELECT * FROM recipes")
+	offset := (page - 1) * pageSize
+
+	query := `SELECT id, name, descr, diff, filters, imgs, authorId, ingredients, steps 
+	          FROM recipes ORDER BY id DESC LIMIT $1 OFFSET $2`
+
+	rows, err := p.DB.Query(query, pageSize, offset)
 	if err != nil {
 		log.Error("Error with selecting recipes", sl.Err(err))
 		return nil, nil
