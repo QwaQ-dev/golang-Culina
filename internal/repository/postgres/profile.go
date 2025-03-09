@@ -36,6 +36,6 @@ func (r *PostgresProfileRepository) ChangeProfileData(column, newData, username 
 	return user, nil
 }
 
-func (r *PostgresProfileRepository) GetUserRecipes(user *structures.User, log *slog.Logger) (*structures.Recipes, error) {
+func (r *PostgresProfileRepository) InsertUserRecipes(user *structures.User, log *slog.Logger) (*structures.Recipes, error) {
 	return nil, nil
 }

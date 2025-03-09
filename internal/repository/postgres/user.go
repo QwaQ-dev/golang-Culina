@@ -13,7 +13,7 @@ type PostgresUserRepository struct {
 	DB *sql.DB
 }
 
-func (r *PostgresUserRepository) CreateUser(user *structures.User, log *slog.Logger) (int, error) {
+func (r *PostgresUserRepository) InsertUser(user *structures.User, log *slog.Logger) (int, error) {
 	var userID int
 
 	err := r.DB.QueryRow("INSERT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id",
@@ -26,7 +26,7 @@ func (r *PostgresUserRepository) CreateUser(user *structures.User, log *slog.Log
 	return userID, nil
 }
 
-func (r *PostgresUserRepository) GetUser(username string, log *slog.Logger) (*structures.User, error) {
+func (r *PostgresUserRepository) SelectUser(username string, log *slog.Logger) (*structures.User, error) {
 	user := new(structures.User)
 
 	err := r.DB.QueryRow("SELECT id, email, username, password, role, sex, recipes_count FROM users WHERE username=$1", username).

@@ -2,15 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"log/slog"
-	"os"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/qwaq-dev/culina/internal/repository"
+	"github.com/qwaq-dev/culina/internal/service"
 	"github.com/qwaq-dev/culina/pkg/logger/sl"
 	"github.com/qwaq-dev/culina/structures"
 )
@@ -25,18 +22,17 @@ func NewDashboardHandler(repo repository.DashboardRepository, log *slog.Logger) 
 }
 
 /*
-FORM-DATA{
-	"name":"",
-	"descr":"",
-	"diff":"",
-	"filters":["", ""],
-	"imgs":"{auto}",
-	"authorID":"from token",
-	"ingredients":{"first":"ingr", },
-	"steps":{"first":"step"},
-}
+	FORM-DATA{
+		"name":"",
+		"descr":"",
+		"diff":"",
+		"filters":["", ""],
+		"imgs":"{auto}",
+		"authorID":"from token",
+		"ingredients":{"first":"ingr", },
+		"steps":{"first":"step"},
+	}
 */
-
 func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 	name := c.FormValue("name")
 	descr := c.FormValue("descr")
@@ -72,40 +68,12 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 		})
 	}
 
-	files, ok := form.File["images"]
-	if !ok || len(files) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "No images uploaded",
+	imgs, err := service.UploadImagesForReceip(form, authorId, c)
+	if err != nil {
+		h.log.Error("error with directory", sl.Err(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error with creating directory",
 		})
-	}
-
-	imgs := make(map[string]string)
-
-	if _, err := os.Stat("./uploads"); os.IsNotExist(err) {
-		err := os.Mkdir("./uploads", os.ModePerm)
-		if err != nil {
-			log.Println("Ошибка при создании папки:", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to create uploads directory",
-			})
-		}
-	}
-
-	for i, file := range files {
-		if i+1 >= 4 {
-			break
-		}
-
-		filename := fmt.Sprintf("./uploads/%d_%s", time.Now().Unix(), file.Filename)
-
-		// Сохраняем файл
-		if err := c.SaveFile(file, filename); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to upload images",
-			})
-		}
-
-		imgs[strconv.Itoa(i+1)] = filename
 	}
 
 	recipe := structures.Recipes{
@@ -119,7 +87,7 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 		Steps:       steps,
 	}
 
-	id, err := h.repo.CreateRecipe(recipe, h.log)
+	id, err := h.repo.InsertRecipe(recipe, h.log)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save recipe"})
 	}
@@ -131,8 +99,34 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 	})
 }
 
+/*
+	JSON{
+	    "review_text": "text",
+	    "rating_value": 5,
+	    "author_id": 1,
+	    "recipe_id": 1
+	}
+*/
 func (h *DashboardHandler) AddReview(c *fiber.Ctx) error {
-	return nil
+	review := new(structures.Review)
+
+	if err := c.BodyParser(review); err != nil {
+		h.log.Error("Ivalid review format", sl.Err(err))
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Invalid review format",
+		})
+	}
+
+	err := h.repo.InsertReview(*review, h.log)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "error with inserting review",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "review sucessfully add",
+	})
 }
 
 func (h *DashboardHandler) Filter(c *fiber.Ctx) error {
@@ -158,7 +152,7 @@ func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
 		pageSize = 10
 	}
 
-	recipes, err := h.repo.GetAllRecipes(page, pageSize, h.log)
+	recipes, err := h.repo.SelectAllRecipes(page, pageSize, h.log)
 	if err != nil {
 		h.log.Error("Error with getting all recipe", sl.Err(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -176,7 +170,7 @@ func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
 func (h *DashboardHandler) RecipeById(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
-	recipe, err := h.repo.GetRecipeById(id, h.log)
+	recipe, err := h.repo.SelectRecipeById(id, h.log)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error with getting recipe by id",

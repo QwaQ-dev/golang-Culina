@@ -2,7 +2,8 @@ package structures
 
 type Review struct {
 	Id           int    `json:"id"`
-	Review_text  string `json:"review_text"`
+	Text         string `json:"review_text"`
 	Rating_value int    `json:"rating_value"`
-	Reviewed_by  string `json:"reviewed_by"`
+	Reviewed_by  int    `json:"author_id"`
+	Recipe_id    int    `json:"recipe_id"`
 }

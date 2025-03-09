@@ -31,6 +31,8 @@ func main() {
 	profileRepo := &postgres.PostgresProfileRepository{DB: db}
 	dashboardRepo := &postgres.PostgresDashboardRepository{DB: db}
 
+	dashboardRepo.StartReviewWorker(log)
+
 	routes.InitRoutes(app, log, userRepo, profileRepo, dashboardRepo)
 
 	log.Info("Server started", slog.String("port", cfg.Server.Port))

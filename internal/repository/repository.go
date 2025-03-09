@@ -7,17 +7,18 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(user *structures.User, log *slog.Logger) (int, error)
-	GetUser(username string, log *slog.Logger) (*structures.User, error)
+	InsertUser(user *structures.User, log *slog.Logger) (int, error)
+	SelectUser(username string, log *slog.Logger) (*structures.User, error)
 }
 
 type DashboardRepository interface {
-	CreateRecipe(recipe structures.Recipes, log *slog.Logger) (int, error)
-	GetAllRecipes(page, pageSize int, log *slog.Logger) ([]structures.Recipes, error)
-	GetRecipeById(id int, log *slog.Logger) (structures.Recipes, error)
+	InsertRecipe(recipe structures.Recipes, log *slog.Logger) (int, error)
+	SelectAllRecipes(page, pageSize int, log *slog.Logger) ([]structures.Recipes, error)
+	SelectRecipeById(id int, log *slog.Logger) (structures.Recipes, error)
+	InsertReview(review structures.Review, log *slog.Logger) error
 }
 
 type ProfileRepository interface {
 	ChangeProfileData(column, newData, userId string, log *slog.Logger) (*structures.User, error)
-	GetUserRecipes(user *structures.User, log *slog.Logger) (*structures.Recipes, error)
+	InsertUserRecipes(user *structures.User, log *slog.Logger) (*structures.Recipes, error)
 }

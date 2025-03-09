@@ -38,7 +38,7 @@ func (h *UserHandler) SignIn(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "username and password are required"})
 	}
 
-	user, err := h.repo.GetUser(req.Username, h.log)
+	user, err := h.repo.SelectUser(req.Username, h.log)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Server error"})
 	}
@@ -75,7 +75,7 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 	}
 	user.Password = string(hash)
 
-	userExists, _ := h.repo.GetUser(user.Username, h.log)
+	userExists, _ := h.repo.SelectUser(user.Username, h.log)
 	if userExists != nil {
 		if userExists.Username == user.Username {
 			h.log.Info("User already exists")
@@ -83,7 +83,7 @@ func (h *UserHandler) SignUp(c *fiber.Ctx) error {
 		}
 	}
 
-	userId, err := h.repo.CreateUser(user, h.log)
+	userId, err := h.repo.InsertUser(user, h.log)
 	if err != nil {
 		h.log.Error("Error with inserting user data into database", sl.Err(err))
 	}
