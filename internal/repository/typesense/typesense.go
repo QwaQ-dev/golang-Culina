@@ -40,10 +40,10 @@ func (t *Typesense) ConnectToTypesense() error {
 		Name: "recipes",
 		Fields: []api.Field{
 			{Name: "id", Type: "string"},
-			{Name: "name", Type: "string"},
-			{Name: "descr", Type: "string"},
+			{Name: "name", Type: "string", Index: pointer.True(), Locale: pointer.String("Ru")},
+			{Name: "descr", Type: "string", Index: pointer.True(), Locale: pointer.String("Ru")},
 			{Name: "diff", Type: "string"},
-			{Name: "filters", Type: "string[]"},
+			{Name: "filters", Type: "string[]", Facet: pointer.True()},
 			{Name: "imgs", Type: "string"},
 			{Name: "authorid", Type: "string"},
 			{Name: "ingredients", Type: "string"},
@@ -125,7 +125,7 @@ func (t *Typesense) SearchWithTypesense(query string) ([]structures.TypesenseRec
 
 	searchParameters := &api.SearchCollectionParams{
 		Q:       pointer.String(query),
-		QueryBy: pointer.String("name,descr,ingredients,steps"),
+		QueryBy: pointer.String("name,descr"),
 	}
 
 	res, err := client.Collection("recipes").Documents().Search(context.Background(), searchParameters)
@@ -167,6 +167,8 @@ func (t *Typesense) SearchWithTypesense(query string) ([]structures.TypesenseRec
 
 		recipes[i] = recipe
 	}
+
+	log.Info(recipes)
 
 	return recipes, nil
 }
@@ -219,7 +221,6 @@ func (t *Typesense) FilterByTypesense(filters []string) ([]structures.TypesenseR
 	return recipes, nil
 }
 
-// Вспомогательные функции для безопасного извлечения данных
 func getString(doc map[string]interface{}, key string) string {
 	if v, ok := doc[key].(string); ok {
 		return v

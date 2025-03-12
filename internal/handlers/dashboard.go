@@ -140,6 +140,11 @@ func (h *DashboardHandler) AddReview(c *fiber.Ctx) error {
 	})
 }
 
+/*
+	JSON{
+		"filters":["", ""]
+	}
+*/
 func (h *DashboardHandler) Filter(c *fiber.Ctx) error {
 	req := struct {
 		Filters []string `json:"filters"`
@@ -161,9 +166,8 @@ func (h *DashboardHandler) SortBy(c *fiber.Ctx) error {
 	return nil
 }
 
-// TODO: yesterday
 func (h *DashboardHandler) SearchByTypesense(c *fiber.Ctx) error {
-	searchText := c.Query("query")
+	searchText := c.Params("query")
 
 	recipes, err := h.ts.SearchWithTypesense(searchText)
 	if err != nil {
