@@ -6,9 +6,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/qwaq-dev/culina/internal/repository/postgres"
+	"github.com/qwaq-dev/culina/internal/repository/typesense"
 	"github.com/qwaq-dev/culina/internal/routes"
 	"github.com/qwaq-dev/culina/pkg/config"
 	"github.com/qwaq-dev/culina/pkg/logger/handlers/slogpretty"
+	"github.com/qwaq-dev/culina/pkg/logger/sl"
 )
 
 const (
@@ -30,10 +32,17 @@ func main() {
 	userRepo := &postgres.PostgresUserRepository{DB: db}
 	profileRepo := &postgres.PostgresProfileRepository{DB: db}
 	dashboardRepo := &postgres.PostgresDashboardRepository{DB: db}
+	ts := typesense.NewTypesense(*dashboardRepo, log, cfg.Typesense)
+
+	if err := ts.ConnectToTypesense(); err != nil {
+		log.Error("Error with connecting to typesense", sl.Err(err))
+	} else {
+		log.Info("Successful connect to typesense")
+	}
 
 	dashboardRepo.StartReviewWorker(log)
 
-	routes.InitRoutes(app, log, userRepo, profileRepo, dashboardRepo)
+	routes.InitRoutes(app, log, userRepo, profileRepo, dashboardRepo, *ts)
 
 	log.Info("Server started", slog.String("port", cfg.Server.Port))
 	app.Listen(cfg.Server.Port)

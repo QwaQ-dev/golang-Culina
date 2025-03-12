@@ -43,13 +43,17 @@ func (p *PostgresDashboardRepository) SelectAllRecipes(page, pageSize int, log *
 
 	offset := (page - 1) * pageSize
 
-	query := `SELECT id, name, descr, diff, filters, imgs, author_id, ingredients, steps, created_at
-	          FROM recipes ORDER BY id DESC LIMIT $1 OFFSET $2`
+	query := `SELECT r.id, r.name, r.descr, r.diff, r.filters, r.imgs, r.author_id, 
+                 r.ingredients, r.steps, r.created_at, u.username
+          	  FROM recipes r
+          	  JOIN users u ON r.author_id = u.id
+         	  ORDER BY r.id DESC
+         	  LIMIT $1 OFFSET $2`
 
 	rows, err := p.DB.Query(query, pageSize, offset)
 	if err != nil {
 		log.Error("Error with selecting recipes", sl.Err(err))
-		return nil, nil
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -60,7 +64,9 @@ func (p *PostgresDashboardRepository) SelectAllRecipes(page, pageSize int, log *
 		var recipe structures.Recipes
 		var filtersJSON, imgsJSON, ingredientsJSON, stepsJSON []byte
 
-		err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Descr, &recipe.Diff, &filtersJSON, &imgsJSON, &recipe.AuthorID, &ingredientsJSON, &stepsJSON, &recipe.Created_at)
+		err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Descr, &recipe.Diff,
+			&filtersJSON, &imgsJSON, &recipe.AuthorID, &ingredientsJSON,
+			&stepsJSON, &recipe.Created_at, &recipe.AuthorName)
 		if err != nil {
 			log.Error("Error scanning row", sl.Err(err))
 			continue
@@ -73,7 +79,6 @@ func (p *PostgresDashboardRepository) SelectAllRecipes(page, pageSize int, log *
 
 		recipesMap[recipe.Id] = &recipe
 		recipeIds = append(recipeIds, recipe.Id)
-
 	}
 
 	if len(recipeIds) == 0 {
@@ -114,7 +119,13 @@ func (p *PostgresDashboardRepository) SelectRecipeById(id int, log *slog.Logger)
 	var recipe structures.Recipes
 	var filtersJSON, imgsJSON, ingredientsJSON, stepsJSON, reviewCount, avgRating []byte
 
-	rows, err := p.DB.Query("SELECT * FROM recipes WHERE id=$1", id)
+	query := `SELECT r.id, r.name, r.descr, r.diff, r.filters, r.imgs, 
+				r.ingredients, r.steps, r.created_at, u.username
+		      FROM recipes r
+		      JOIN users u ON r.author_id = u.id
+			  WHERE id = $1`
+
+	rows, err := p.DB.Query(query, id)
 	if err != nil {
 		log.Error("error with getting recipe by id", sl.Err(err))
 		return recipe, nil
@@ -124,7 +135,7 @@ func (p *PostgresDashboardRepository) SelectRecipeById(id int, log *slog.Logger)
 	for rows.Next() {
 		err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Descr, &recipe.Diff, &filtersJSON,
 			&imgsJSON, &recipe.AuthorID, &ingredientsJSON, &stepsJSON, &reviewCount,
-			&avgRating, &recipe.Created_at)
+			&avgRating, &recipe.Created_at, &recipe.AuthorID)
 		if err != nil {
 			log.Error("Error scanning row", sl.Err(err))
 			continue

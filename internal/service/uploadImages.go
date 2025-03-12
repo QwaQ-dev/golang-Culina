@@ -12,20 +12,20 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func UploadImagesForReceip(form *multipart.Form, authorID int, c *fiber.Ctx) (map[string]string, error) {
+func UploadImagesForReceip(form *multipart.Form, authorID int, c *fiber.Ctx) (map[string]string, string, error) {
 	imgs := make(map[string]string)
 	dirName := fmt.Sprintf("./uploads/%d", authorID)
 
 	files, ok := form.File["images"]
 	if !ok || len(files) == 0 {
-		return imgs, fmt.Errorf("no files upload")
+		return imgs, "", fmt.Errorf("no files upload")
 	}
 
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
 		err := os.Mkdir(dirName, os.ModePerm)
 		if err != nil {
 			log.Println("Ошибка при создании папки:", err)
-			return imgs, fmt.Errorf("error with creating folder")
+			return imgs, "", fmt.Errorf("error with creating folder")
 		}
 	}
 
@@ -55,5 +55,5 @@ func UploadImagesForReceip(form *multipart.Form, authorID int, c *fiber.Ctx) (ma
 
 	wg.Wait()
 
-	return imgs, nil
+	return imgs, dirName, nil
 }

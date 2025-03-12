@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/qwaq-dev/culina/internal/handlers"
 	"github.com/qwaq-dev/culina/internal/repository"
+	"github.com/qwaq-dev/culina/internal/repository/typesense"
 )
 
 func InitRoutes(
@@ -13,13 +14,14 @@ func InitRoutes(
 	userRepo repository.UserRepository,
 	profileRepo repository.ProfileRepository,
 	dashboardRepo repository.DashboardRepository,
+	ts typesense.Typesense,
 ) {
 	dashboard := app.Group("/dashboard")
 	profile := app.Group("/profile")
 	user := app.Group("/user")
 	userHandler := handlers.NewUserHandler(userRepo, log)
 	profileHandler := handlers.NewProfileHandler(profileRepo, log)
-	dashboardHandler := handlers.NewDashboardHandler(dashboardRepo, log)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardRepo, log, ts)
 
 	//Routes for dashboard page
 	dashboard.Post("/create-recipe", dashboardHandler.CreateRecipe)

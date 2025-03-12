@@ -3,10 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"log/slog"
+	"os"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/qwaq-dev/culina/internal/repository"
+	"github.com/qwaq-dev/culina/internal/repository/typesense"
 	"github.com/qwaq-dev/culina/internal/service"
 	"github.com/qwaq-dev/culina/pkg/logger/sl"
 	"github.com/qwaq-dev/culina/structures"
@@ -14,11 +16,16 @@ import (
 
 type DashboardHandler struct {
 	repo repository.DashboardRepository
+	ts   typesense.Typesense
 	log  *slog.Logger
 }
 
-func NewDashboardHandler(repo repository.DashboardRepository, log *slog.Logger) *DashboardHandler {
-	return &DashboardHandler{repo: repo, log: log}
+func NewDashboardHandler(repo repository.DashboardRepository, log *slog.Logger, ts typesense.Typesense) *DashboardHandler {
+	return &DashboardHandler{
+		repo: repo,
+		log:  log,
+		ts:   ts,
+	}
 }
 
 /*
@@ -37,7 +44,7 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 	name := c.FormValue("name")
 	descr := c.FormValue("descr")
 	diff := c.FormValue("diff")
-	authorId, _ := strconv.Atoi(c.FormValue("authorID"))
+	authorId, _ := strconv.Atoi(c.FormValue("author_id"))
 
 	var filters []string
 	ingredients := make(map[string]string)
@@ -68,13 +75,15 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 		})
 	}
 
-	imgs, err := service.UploadImagesForReceip(form, authorId, c)
+	imgs, dirName, err := service.UploadImagesForReceip(form, authorId, c)
 	if err != nil {
 		h.log.Error("error with directory", sl.Err(err))
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error with creating directory",
 		})
 	}
+
+	h.log.Info("", slog.Any("authorId", authorId))
 
 	recipe := structures.Recipes{
 		Name:        name,
@@ -89,8 +98,10 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 
 	id, err := h.repo.InsertRecipe(recipe, h.log)
 	if err != nil {
+		os.Remove(dirName)
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save recipe"})
 	}
+	h.ts.AddRecipeToTypesense(recipe)
 
 	recipe.Id = id
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -137,8 +148,19 @@ func (h *DashboardHandler) SortBy(c *fiber.Ctx) error {
 	return nil
 }
 
+// TODO: yesterday
 func (h *DashboardHandler) SearchByTypesense(c *fiber.Ctx) error {
-	return nil
+	searchText := c.Query("query")
+
+	recipes, err := h.ts.SearchWithTypesense(searchText)
+	if err != nil {
+		h.log.Error("Error with searching", sl.Err(err))
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"recipes found": recipes,
+	})
 }
 
 func (h *DashboardHandler) AllRecipes(c *fiber.Ctx) error {
