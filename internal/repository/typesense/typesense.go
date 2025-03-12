@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strings"
 
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/qwaq-dev/culina/internal/repository/postgres"
@@ -124,7 +125,7 @@ func (t *Typesense) SearchWithTypesense(query string) ([]structures.TypesenseRec
 
 	searchParameters := &api.SearchCollectionParams{
 		Q:       pointer.String(query),
-		QueryBy: pointer.String("name,descr"),
+		QueryBy: pointer.String("name,descr,ingredients,steps"),
 	}
 
 	res, err := client.Collection("recipes").Documents().Search(context.Background(), searchParameters)
@@ -135,7 +136,7 @@ func (t *Typesense) SearchWithTypesense(query string) ([]structures.TypesenseRec
 
 	if res.Hits == nil {
 		t.log.Warn("No results found in Typesense")
-		return nil, nil
+		return []structures.TypesenseRecipe{}, nil
 	}
 
 	// Разыменовываем указатель
@@ -165,6 +166,54 @@ func (t *Typesense) SearchWithTypesense(query string) ([]structures.TypesenseRec
 		}
 
 		recipes[i] = recipe
+	}
+
+	return recipes, nil
+}
+
+func (t *Typesense) FilterByTypesense(filters []string) ([]structures.TypesenseRecipe, error) {
+	client := typesense.NewClient(
+		typesense.WithServer(t.cfg.Host),
+		typesense.WithAPIKey(t.cfg.APIKey),
+	)
+
+	searchParameters := &api.SearchCollectionParams{
+		Q:       pointer.String(strings.Join(filters, " ")), // Поиск всех элементов
+		QueryBy: pointer.String("filters"),
+	}
+
+	res, err := client.Collection("recipes").Documents().Search(context.Background(), searchParameters)
+	if err != nil {
+		t.log.Error("Ошибка при фильтрации в Typesense", sl.Err(err))
+		return nil, err
+	}
+
+	if res.Hits == nil {
+		t.log.Warn("Фильтр не дал результатов")
+		return nil, nil
+	}
+
+	recipes := make([]structures.TypesenseRecipe, len(*res.Hits))
+	for i, hit := range *res.Hits {
+		if hit.Document == nil {
+			t.log.Error("Документ в результате поиска пуст")
+			continue
+		}
+
+		doc := *hit.Document
+		recipes[i] = structures.TypesenseRecipe{
+			Id:           getString(doc, "id"),
+			Name:         getString(doc, "name"),
+			Descr:        getString(doc, "descr"),
+			Diff:         getString(doc, "diff"),
+			Filters:      toStringSlice(doc["filters"]),
+			Imgs:         getString(doc, "imgs"),
+			AuthorID:     getString(doc, "authorid"),
+			Ingredients:  getString(doc, "ingredients"),
+			Steps:        getString(doc, "steps"),
+			Review_count: getInt(doc, "review_count"),
+			Avg_rating:   getFloat(doc, "avg_rating"),
+		}
 	}
 
 	return recipes, nil

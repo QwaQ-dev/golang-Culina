@@ -34,8 +34,8 @@ func NewDashboardHandler(repo repository.DashboardRepository, log *slog.Logger, 
 		"descr":"",
 		"diff":"",
 		"filters":["", ""],
-		"imgs":"{auto}",
-		"authorID":"from token",
+		"images":"{auto}",
+		"authorid":"from token",
 		"ingredients":{"first":"ingr", },
 		"steps":{"first":"step"},
 	}
@@ -44,7 +44,7 @@ func (h *DashboardHandler) CreateRecipe(c *fiber.Ctx) error {
 	name := c.FormValue("name")
 	descr := c.FormValue("descr")
 	diff := c.FormValue("diff")
-	authorId, _ := strconv.Atoi(c.FormValue("author_id"))
+	authorId, _ := strconv.Atoi(c.FormValue("authorid"))
 
 	var filters []string
 	ingredients := make(map[string]string)
@@ -141,7 +141,20 @@ func (h *DashboardHandler) AddReview(c *fiber.Ctx) error {
 }
 
 func (h *DashboardHandler) Filter(c *fiber.Ctx) error {
-	return nil
+	req := struct {
+		Filters []string `json:"filters"`
+	}{}
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request params"})
+	}
+
+	recipes, err := h.ts.FilterByTypesense(req.Filters)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error with filter"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"filtered recipes": recipes})
 }
 
 func (h *DashboardHandler) SortBy(c *fiber.Ctx) error {
